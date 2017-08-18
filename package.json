@@ -1,15 +1,15 @@
 {
-    "name": "fecs",
-    "displayName": "fecs",
-    "description": "fecs extension for vscode",
+    "name": "fecsm",
+    "displayName": "fecsm",
+    "description": "fecs extension for vscode support",
     "icon": "imges/fecs.jpg",
-    "version": "0.10.0",
-    "publisher": "Marx",
-    "homepage": "https://github.com/MarxJiao/VScode-fecs",
-    "bugs": "https://github.com/MarxJiao/VScode-fecs/issues",
+    "version": "0.11.2",
+    "publisher": "swxy",
+    "homepage": "https://github.com/swxy/VScode-fecs",
+    "bugs": "https://github.com/swxy/VScode-fecs/issues",
     "repository": {
         "type": "git",
-        "url": "https://github.com/MarxJiao/VScode-fecs"
+        "url": "https://github.com/swxy/VScode-fecs"
     },
     "engines": {
         "vscode": "^1.0.0"
@@ -64,7 +64,7 @@
     },
     "problemMatchers": [
         {
-            "name": "fecs",
+            "name": "fecsm",
             "owner": "javascript",
             "fileLocation": [
                 "relative",
@@ -88,5 +88,8 @@
         "typescript": "^2.0.3",
         "vscode": "^1.0.0",
         "@types/node": "^6.0.40"
+    },
+    "dependencies": {
+        "fecs": "^1.4.1"
     }
 }

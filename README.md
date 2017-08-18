@@ -5,16 +5,13 @@ Fecs extension for vscode
  - 支持中英文切换，默认中文
  - 支持保存时自动使用fecs检查，默认不开启
  - 支持配置检查级别，可配置为只检查error或warn，或者同时检查，默认同时检查
+ - 支持文件修改部门检查（针对git diff 结果检测）
  
 # install
-## 1. 安装 [fecs](http://fecs.baidu.com/)
-```
-sudo npm install fecs -g
-```
-## 2. 安装插件 [fecs extension for vscode](https://marketplace.visualstudio.com/items?itemName=Marx.fecs&showReviewDialog=true)
+## 安装插件 [fecs extension for vscode](https://marketplace.visualstudio.com/items?itemName=swxy.fecsm&showReviewDialog=true)
 在vscode里按 ```cmd + p```，输入：
 ```
-ext install fecs
+ext install fecsm
 ```
 
 # configuration
@@ -29,11 +26,15 @@ ext install fecs
 
     // 配置是否在保存文件时自动使用fecs，{boolean}
     // 本着不扰民的思想，默认false，不自动使用。设置为true，则在保存时自动使用fecs
-    "fecs.auto": false
+    "fecs.auto": false,
 
     // 配置fecs的check level，{number}
     // 0为显示error和warn，1为只显示warn，2为只显示error，默认level为0
     "fecs.level": 0,
+
+    // 配置fecs的check all {boolean}
+    // 设置为false时，只针对改动部分做检测
+    "fecs.all": false,
 }
 ```
 # use 

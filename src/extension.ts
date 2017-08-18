@@ -6,6 +6,31 @@ import * as vscode from 'vscode';
 import * as child_process from 'child_process';
 import * as path from 'path';
 import {GitDiffParser} from './diff';
+const fecs = require('fecs');
+// fecs 检测结果表示
+interface fecsErrorModel {
+    line: number,
+    column: number,
+    severity: number,
+    message: string,
+    rule: string,
+    info: string
+}
+
+interface fecsCheckResult {
+    path: string;
+    relative: string;
+    errors: fecsErrorModel[]
+}
+
+interface fecsOptions {
+    _: string[],
+    stream: boolean,
+    reporter?: string,
+    format?: string,
+    silent: boolean,
+    level?: number | undefined
+}
 // const child_process = require('child_process');
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -49,22 +74,26 @@ export function activate(context: vscode.ExtensionContext) {
                 || fileType === 'vue'
             ) {
                 
-                let options = [fileName];
+                let options:fecsOptions = {
+                    _: [fileName],
+                    stream: false,
+                    silent: false
+                };
 
                 // display output in English if 'fecs.en' is true
                 const ifEnglish = vscode.workspace.getConfiguration('fecs').get('en');
                 if (ifEnglish) {
                 }
                 else {
-                    options.push('--reporter=baidu');
+                    options.reporter = 'baidu';
                 }
                 const level = vscode.workspace.getConfiguration('fecs').get('level');
-                options.push('--level=' + level);
+                options.level = Number(level);
 
                 // 标识是否输出文件的全部检测结果，一般是git仓库的话，推荐设置为false
                 const all = vscode.workspace.getConfiguration('fecs').get('all');
                 if (!all) {
-                    options.push('--format=json', '-s');
+                    options.format = 'json';
                 }
                 
                 showOutput(options);
@@ -84,75 +113,33 @@ export function activate(context: vscode.ExtensionContext) {
 }
 // 新建output
 const output = vscode.window.createOutputChannel('fecs output');
-
-// fecs 检测结果表示
-interface fecsErrorModel {
-    line: number,
-    column: number,
-    severity: number,
-    message: string,
-    rule: string,
-    info: string
-}
-
-interface fecsCheckResult {
-    path: string;
-    relative: string;
-    errors: fecsErrorModel[]
-}
 /**
  * 将命令执行结果显示在output中
  *
  * @param options 命令参数
  */
-function showOutput(options: string[]) {
+function showOutput(options: fecsOptions) {
     // 先清空output
     output.clear();
-
-    // 命令参数
-    let command = 'fecs';
-    let commandOption = options;
-
-    // windows下参数特殊处理
-    if (/^win/.test(process.platform)) {
-        // 命令
-        command = 'cmd';
-
-        // 把盘符换成大写
-        let filePathArr = options[0].split(':');
-        filePathArr[0] = filePathArr[0].toUpperCase();
-        const filePath = filePathArr.join(':');
-        
-        options.shift();
-        const shellScript = '/c fecs check ' + filePath + ' ' +  options.join(' ');
-        commandOption = shellScript.split(' ');
-    }
-    // 运行命令
-    const fecs = child_process.spawn(command, commandOption);
-    let checkResult = '';
-    // 有数据时向output添加数据
-    fecs.stdout.on('data', data => {
-        checkResult += data.toString();
-    })
-    fecs.stdout.on('end', () => {
-        const onlyChanged = options[options.length - 1] === '-s';
-        vscode.workspace.saveAll();
-        let data = checkResult;
-        if (onlyChanged) {
-            const lines = diff(options[0]);
-            data = filterError(checkResult, lines);
+    fecs.check(options, (success:boolean, errors:fecsCheckResult[]) => {
+        console.log('checked result', success);
+        let data;
+        let lines:number[] = [];
+        const isCheckAll = options.format !== 'json';
+        if (!isCheckAll) {
+            lines = diff(options._[0]);
         }
-        output.append(data.toString());
+        if (!isCheckAll && !lines.length) {
+            data = '[fecs]表示没有发现啥问题!';
+        }
+        else {
+            data = filterError(errors, lines, isCheckAll);
+        }
+        // vscode.workspace.saveAll();
+        output.append(data);
         output.show(5, true);
     })
-    // 有错误时显示错误
-    fecs.stderr.on('data', data => {
-        vscode.workspace.saveAll();
-        vscode.window.showInformationMessage(data.toString());
-        output.append(data.toString());
-        output.show(5, true);
-    })
-    
+    return;
 }
 
 /**
@@ -161,14 +148,13 @@ function showOutput(options: string[]) {
  * @param result 检测结果
  * @param lines 文件有变动的行数
  */
-function filterError(result: string, lines: number[]): string {
-    const fecsJsonDatas: fecsCheckResult[] = JSON.parse(result);
+function filterError(fecsJsonDatas: fecsCheckResult[], lines: number[], isCheckAll: boolean): string {
     const errors: string[] = [];
     const num2str = ['', ' WARN', 'ERROR'];
     fecsJsonDatas.forEach(fecsJsonData => {
         fecsJsonData.errors.forEach(error => {
             const {line, info, severity} = error;
-            if (~lines.indexOf(line)) { // === lines.indexOf(x) !== -1
+            if (isCheckAll || ~lines.indexOf(line)) { // ==> lines.indexOf(x) !== -1
                 const tip: string = num2str[severity];
                 errors.push(`${tip} ${info}`);
             }
